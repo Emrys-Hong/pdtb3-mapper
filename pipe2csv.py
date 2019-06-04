@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
-import pandas as pd 
+import pandas as pd
+import re
 
 def read_file(filename, fields_dict, index):
     with open(filename) as f:
@@ -33,15 +34,66 @@ def get_filepaths(main_foldername):
             filepaths.append(main_foldername/folder/filename)
     return filepaths
 
+def write_all_files():
+    pass
+    #write all the files to one foler
+    #write_folder = '/home/pengfei/data/PDTB-3.0/all/raw/'
+    #for filename in filepaths:
+    #    rawtext = codecs.open(filename, encoding='utf-8', errors='ignore').read()
+    #    with open(write_folder + str(filename).split('/')[-1], 'a') as f:
+    #        f.write(rawtext)
+
+def get_span_list(span):
+    if span == '':
+        assert(False)
+    spans = span.split(';')
+    return [[int(k) for k in o.split('..')] for o in spans if o != '']
 
 
-#write_folder = '/home/pengfei/data/PDTB-3.0/all/raw/'
-#for filename in filepaths:
-#    rawtext = codecs.open(filename, encoding='utf-8', errors='ignore').read()
-#    with open(write_folder + str(filename).split('/')[-1], 'a') as f:
-#        f.write(rawtext)
+def correct_conn_char_span(pdtb3, main_folder):
+    false_conn_list = []
+    for i in range(len(pdtb3)):
+        if pdtb3.loc[i, 'Relation_Type'] == 'Explicit':
+            spanlist = get_span_list(pdtb3.loc[i, 'Conn_SpanList'])
+            with open(main_folder + pdtb3.loc[i, 'DocID']) as f:
+                rawtext = f.read()
+                expected = ' '.join([rawtext[o[0]: o[1]] for o in spanlist]).lower()
+            if pdtb3.loc[i, 'Conn1'] not in expected:
+                false_conn_list.append(i)
+    print("Number of incorrect conn span list", len(false_conn_list))
+    print("begin correcting")
+    for i in false_conn_list:
+        with open(main_folder+pdtb3.loc[i,'DocID']) as f:
+            rawtext = f.read().lower()
+            start = int(pdtb3.loc[i, 'Conn_SpanList'].split('..')[0])
+            distance = [abs(m.start() - start) for m in re.finditer(pdtb3.loc[i,'Conn1'], rawtext, )]
+            start = [m.start() for m in re.finditer(pdtb3.loc[i, 'Conn1'], rawtext)]
+            if distance != []:
+                index = distance.index(min(distance))
+                start = start[index]
+                span = str(start) + '..' + str(start+len(pdtb3.loc[i, 'Conn1']))
+                pdtb3.loc[i, 'Conn_SpanList'] = span
+    print("connective char span are complete")
+    false_conn_list = []
+    for i in range(len(pdtb3)):
+        if pdtb3.loc[i, 'Relation_Type'] == 'Explicit':
+            spanlist = get_span_list(pdtb3.loc[i, 'Conn_SpanList'])
+            with open(main_folder + pdtb3.loc[i, 'DocID']) as f:
+                rawtext = f.read()
+                expected = ' '.join([rawtext[o[0]: o[1]] for o in spanlist]).lower()
+            if pdtb3.loc[i, 'Conn1'] not in expected:
+                false_conn_list.append(i)
+    print("Number of incorrect conn span left", len(false_conn_list))
+    return pdtb3
+
+
+
+
+
 
 if __name__ == "__main__":
     main_foldername = '/home/pengfei/data/PDTB-3.0/data/gold/'
     df = generate_df(main_foldername)
+    raw_folder = '/home/pengfei/data/PDTB-3.0/all/raw/'
+    df = correct_conn_char_span(df, raw_folder)
     df.to_csv('pdtb3.csv', index=False)
