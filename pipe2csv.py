@@ -2,6 +2,10 @@ import os
 from pathlib import Path
 import pandas as pd
 import re
+import json
+import codecs
+import numpy as np
+
 
 def read_file(filename, fields_dict, index):
     with open(filename) as f:
@@ -122,14 +126,46 @@ def correct_arg_span(parse_dict, pdtb3):
     return pdtb3
 
 
+def merge3dicts(x, y, z):
+    m = x.copy()
+    m.update(y)
+    m.update(z)
+    return m
+
+
+def get_list(parse_dict, doc):
+    doc = parse_dict[doc]['sentences']
+    char_start_list = []
+    char_end_list = []
+    for sentence in doc:
+        for word in sentence['words']:
+            char_start_list.append(word[1]['CharacterOffsetBegin'])
+            char_end_list.append(word[1]['CharacterOffsetEnd'])
+    return char_start_list, char_end_list
+
+
+def get_span_string(span_list):
+    ret = ''
+    for span in span_list:
+        ret += str(span[0])
+        ret += '..'
+        ret += str(span[1])
+        ret += ';'
+    return ret[:-1]
 
 if __name__ == "__main__":
     gold_folder = '/home/pengfei/data/PDTB-3.0/data/gold/'
-    df = generate_df(main_foldername)
+    df = generate_df(gold_folder)
     raw_folder = '/home/pengfei/data/PDTB-3.0/all/raw/'
     df = correct_conn_char_span(df, raw_folder)
-    gold_data_path_2 = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-train/pdtb-parses.json'
-    parse_dict = json.loads(codecs.open(gold_data_path_2, encoding='utf-8', errors='ignore').read())
+    print("loading conll datasets")
+    conll_train = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-train/pdtb-parses.json'
+    parse_dict_train = json.loads(codecs.open(conll_train, encoding='utf-8', errors='ignore').read())
+    conll_dev = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-dev/pdtb-parses.json'
+    parse_dict_dev = json.loads(codecs.open(conll_dev, encoding='utf-8', errors='ignore').read())
+    conll_test = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-test/pdtb-parses.json'
+    parse_dict_test = json.loads(codecs.open(conll_test, encoding='utf-8', errors='ignore').read())
+    print("datasets loaded")
+    parse_dict = merge3dicts(parse_dict_train, parse_dict_dev, parse_dict_test)
     df = correct_arg_span(parse_dict, df)
     df.to_csv('pdtb3.csv', index=False)
-    
