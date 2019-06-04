@@ -35,4 +35,4 @@ def get_filepaths(main_foldername):
 if __name__ == "__main__":
     main_foldername = '/home/pengfei/data/PDTB-3.0/data/gold/'
     df = generate_df(main_foldername)
-    df.to_csv('pdtb3.csv')
+    df.to_csv('pdtb3.csv', index=False)
