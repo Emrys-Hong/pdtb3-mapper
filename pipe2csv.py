@@ -87,13 +87,49 @@ def correct_conn_char_span(pdtb3, main_folder):
     return pdtb3
 
 
+def correct_arg_span(parse_dict, pdtb3):
+    """change are smaller than 2 char span"""
+    for i in range(len(pdtb3)):
+        if pdtb3.loc[i, 'DocID'] in parse_dict.keys():
+            char_start_list, char_end_list = get_list(parse_dict, pdtb3.loc[i, 'DocID'])
 
+            spanlist = get_span_list(pdtb3.loc[i, 'Arg1_SpanList'])
+            for span in spanlist:
+                if span[0] not in char_start_list:
+                    distance = [abs(span[0]-o) for o in char_start_list]
+                    index = distance.index(min(distance))
+                    span[0] = char_start_list[index]
+                if span[1] not in char_end_list:
+                    distance = [abs(span[1]-o) for o in char_end_list]
+                    index = distance.index(min(distance))
+                    span[1] = char_end_list[index]
+            span_string = get_span_string(spanlist)
+            pdtb3.loc[i, 'Arg1_SpanList'] = span_string
+
+            spanlist = get_span_list(pdtb3.loc[i, 'Arg2_SpanList'])
+            for span in spanlist:
+                if span[0] not in char_start_list:
+                    distance = [abs(span[0]-o) for o in char_start_list]
+                    index = distance.index(min(distance))
+                    span[0] = char_start_list[index]
+                if span[1] not in char_end_list:
+                    distance = [abs(span[1]-o) for o in char_end_list]
+                    index = distance.index(min(distance))
+                    span[1] = char_end_list[index]
+            span_string = get_span_string(spanlist)
+            pdtb3.loc[i, 'Arg2_SpanList'] = span_string
+
+    return pdtb3
 
 
 
 if __name__ == "__main__":
-    main_foldername = '/home/pengfei/data/PDTB-3.0/data/gold/'
+    gold_folder = '/home/pengfei/data/PDTB-3.0/data/gold/'
     df = generate_df(main_foldername)
     raw_folder = '/home/pengfei/data/PDTB-3.0/all/raw/'
     df = correct_conn_char_span(df, raw_folder)
+    gold_data_path_2 = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-train/pdtb-parses.json'
+    parse_dict = json.loads(codecs.open(gold_data_path_2, encoding='utf-8', errors='ignore').read())
+    df = correct_arg_span(parse_dict, df)
     df.to_csv('pdtb3.csv', index=False)
+    
