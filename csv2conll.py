@@ -49,7 +49,7 @@ def get_token_list(char_span_list, doc_word_dict):
     doc_word_dict = OrderedDict(sorted(doc_word_dict.items()), keys=lambda x:x[0][0])
     for span in char_span_list:
         for key, value in doc_word_dict.items():
-            if key[1] <= span[1]:
+            if key[1] >= span[1]:
                 break
             if key[0] >= span[0]:
                 tokenlist.append(value)
@@ -109,6 +109,7 @@ def main(pdtb3, parse_dict, rawtext_foldername):
         char_span_list = get_span_list(pdtb3.loc[i,'Arg1_SpanList'])
         relation['Arg1']['CharacterSpanList'] = char_span_list
         arg_rawtext = ' '.join([rawtext[o[0]:o[1]] for o in char_span_list])
+        # TODO: get rid of all the \n if it appear in the arg?
         relation['Arg1']['RawText'] = arg_rawtext
         arg_tokenlist = get_token_list(char_span_list, doc_word_dict)
         relation['Arg1']['TokenList'] = arg_tokenlist
