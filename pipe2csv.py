@@ -39,13 +39,15 @@ def get_filepaths(main_foldername):
     return filepaths
 
 def write_all_files():
+    main_folder = '/home/pengfei/data/PDTB-3.0/data/raw/'
+    write_folder = '/home/pengfei/data/PDTB-3.0/all/raw/'
+    filepaths = [main_folder+folder+'/'+o for folder in os.listdir(main_folder) for o in os.listdir(main_folder+folder)]
+    for file in filepaths:
+        with open(file, encoding='latin1') as f:
+            rawtext = f.read()
+        with open(write_folder + file.split('/')[-1], 'a') as f:
+            f.write(rawtext) 
     pass
-    #write all the files to one foler
-    #write_folder = '/home/pengfei/data/PDTB-3.0/all/raw/'
-    #for filename in filepaths:
-    #    rawtext = codecs.open(filename, encoding='utf-8', errors='ignore').read()
-    #    with open(write_folder + str(filename).split('/')[-1], 'a') as f:
-    #        f.write(rawtext)
 
 def get_span_list(span):
     if span == '':
@@ -94,6 +96,7 @@ def correct_conn_char_span(pdtb3, main_folder):
 def correct_arg_span(parse_dict, pdtb3):
     """change are smaller than 2 char span"""
     for i in range(len(pdtb3)):
+        if i%100==0:print(i)
         if pdtb3.loc[i, 'DocID'] in parse_dict.keys():
             char_start_list, char_end_list = get_list(parse_dict, pdtb3.loc[i, 'DocID'])
 
