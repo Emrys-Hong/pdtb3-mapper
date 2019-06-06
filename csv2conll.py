@@ -49,10 +49,13 @@ def get_token_list(char_span_list, doc_word_dict):
     doc_word_dict = OrderedDict(sorted(doc_word_dict.items()), keys=lambda x:x[0][0])
     for span in char_span_list:
         for key, value in doc_word_dict.items():
-            if key[1] >= span[1]:
+            if type(key) == str:
+                continue
+            if key[1] > span[1]:
                 break
             if key[0] >= span[0]:
                 tokenlist.append(value)
+
     return tokenlist
 
 def merge3dicts(x, y, z):
@@ -95,6 +98,12 @@ def main(pdtb3, parse_dict, rawtext_foldername):
             # TODO: this may be a problem to put just one connective
             relation['Connective']['RawText'] = pdtb3.loc[i, 'Conn1']
             relation['Connective']['TokenList'] = get_token_list(relation['Connective']['CharacterSpanList'], doc_word_dict)
+            # TODO: fix this dirty fix, for explicit altlex and altlexc
+            if relation['Connective']['TokenList'] == []:
+                relation['Connective']['CharacterSpanList'][0][0] -= 5
+                relation['Connective']['CharacterSpanList'][0][1] += 5
+                relation['Connective']['TokenList'] = get_token_list(relation['Connective']['CharacterSpanList'], doc_word_dict)
+            assert(relation['Connective']['TokenList'] != [])
             if relation['Type'] in ['AltLex', 'AltLexC']:
                 relation['Connective']['RawText'] = ' '.join([rawtext[o[0]:o[1]] for o in relation['Connective']['CharacterSpanList']]) 
         elif relation['Type'] == 'Implicit':
