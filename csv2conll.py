@@ -89,7 +89,7 @@ def main(pdtb3, parse_dict, rawtext_foldername):
 
         
         doc_word_dict = get_doc_word_dict(parse_dict, pdtb3.loc[i, 'DocID'])
-        rawtext = codecs.open(rawtext_foldername/pdtb3.loc[i,'DocID'], encoding='utf-8', errors='ignore').read()
+        rawtext = codecs.open(rawtext_foldername/pdtb3.loc[i,'DocID'],).read()
 
         # connective
         relation['Connective'] = {}
@@ -98,11 +98,7 @@ def main(pdtb3, parse_dict, rawtext_foldername):
             # TODO: this may be a problem to put just one connective
             relation['Connective']['RawText'] = pdtb3.loc[i, 'Conn1']
             relation['Connective']['TokenList'] = get_token_list(relation['Connective']['CharacterSpanList'], doc_word_dict)
-            # TODO: fix this dirty fix, for explicit altlex and altlexc
-            if relation['Connective']['TokenList'] == []:
-                relation['Connective']['CharacterSpanList'][0][0] -= 5
-                relation['Connective']['CharacterSpanList'][0][1] += 5
-                relation['Connective']['TokenList'] = get_token_list(relation['Connective']['CharacterSpanList'], doc_word_dict)
+            # DONE: dirty fix removed
             assert(relation['Connective']['TokenList'] != [])
             if relation['Type'] in ['AltLex', 'AltLexC']:
                 relation['Connective']['RawText'] = ' '.join([rawtext[o[0]:o[1]] for o in relation['Connective']['CharacterSpanList']]) 

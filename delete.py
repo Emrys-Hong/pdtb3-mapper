@@ -59,40 +59,9 @@ def get_span_list(span):
 def correct_conn_char_span(pdtb3, main_folder):
     false_conn_list = []
     for i in range(len(pdtb3)):
-        if pdtb3.loc[i, 'Relation_Type'] == 'Explicit':
-            spanlist = get_span_list(pdtb3.loc[i, 'Conn_SpanList'])
-            with open(main_folder + pdtb3.loc[i, 'DocID'], ) as f:
-                rawtext = f.read()
-                expected = ' '.join([rawtext[o[0]: o[1]] for o in spanlist]).lower()
-            if pdtb3.loc[i, 'Conn1'] not in expected:
-                false_conn_list.append(i)
-    print("Number of incorrect conn span list", len(false_conn_list))
-    print("begin correcting")
-    for i in false_conn_list:
-        with open(main_folder+pdtb3.loc[i,'DocID'], ) as f:
-            rawtext = f.read().lower()
-            start = int(pdtb3.loc[i, 'Conn_SpanList'].split('..')[0])
-            #TODO: dirty fix at 41854, "still", "till"
-            distance = [abs(m.start() - start) for m in re.finditer(pdtb3.loc[i,'Conn1'], rawtext, )]
-            start = [m.start() for m in re.finditer(pdtb3.loc[i, 'Conn1'], rawtext)]
-            if distance != []:
-                index = distance.index(min(distance))
-                start = start[index]
-                span = str(start) + '..' + str(start+len(pdtb3.loc[i, 'Conn1']))
-                pdtb3.loc[i, 'Conn_SpanList'] = span
-    print("connective char span are complete")
-    false_conn_list = []
-    for i in range(len(pdtb3)):
-        if pdtb3.loc[i, 'Relation_Type'] == 'Explicit':
-            spanlist = get_span_list(pdtb3.loc[i, 'Conn_SpanList'])
-            with open(main_folder + pdtb3.loc[i, 'DocID']) as f:
-                rawtext = f.read()
-                expected = ' '.join([rawtext[o[0]: o[1]] for o in spanlist]).lower()
-            if pdtb3.loc[i, 'Conn1'] not in expected:
-                false_conn_list.append(i)
-    print("Number of incorrect conn span left", len(false_conn_list))
+        if i == 41854:
+            pdtb3.loc[i,'Conn_SpanList'] = "4330..4335"
     return pdtb3
-
 
 def correct_arg_span(parse_dict, pdtb3):
     """change are smaller than 2 char span"""
@@ -159,17 +128,7 @@ def get_span_string(span_list):
 
 if __name__ == "__main__":
     gold_folder = '/home/pengfei/data/PDTB-3.0/data/gold/'
-    df = generate_df(gold_folder)
+    df = pd.read_csv('pdtb3.csv')
     raw_folder = '/home/pengfei/data/PDTB-3.0/all/raw/'
     df = correct_conn_char_span(df, raw_folder)
-    print("loading conll datasets")
-    conll_train = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-train/pdtb-parses.json'
-    parse_dict_train = json.loads(codecs.open(conll_train, encoding='utf-8', errors='ignore').read())
-    conll_dev = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-dev/pdtb-parses.json'
-    parse_dict_dev = json.loads(codecs.open(conll_dev, encoding='utf-8', errors='ignore').read())
-    conll_test = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-test/pdtb-parses.json'
-    parse_dict_test = json.loads(codecs.open(conll_test, encoding='utf-8', errors='ignore').read())
-    print("datasets loaded")
-    parse_dict = merge3dicts(parse_dict_train, parse_dict_dev, parse_dict_test)
-    df = correct_arg_span(parse_dict, df)
     df.to_csv('pdtb3.csv', index=False)
