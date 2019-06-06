@@ -8,7 +8,7 @@ import numpy as np
 
 
 def read_file(filename, fields_dict, index):
-    with open(filename) as f:
+    with open(filename, encoding='latin1') as f:
         rawtext = f.readlines()
     for relation in rawtext:
         relation = relation.strip()
@@ -59,7 +59,7 @@ def correct_conn_char_span(pdtb3, main_folder):
     for i in range(len(pdtb3)):
         if pdtb3.loc[i, 'Relation_Type'] == 'Explicit':
             spanlist = get_span_list(pdtb3.loc[i, 'Conn_SpanList'])
-            with open(main_folder + pdtb3.loc[i, 'DocID']) as f:
+            with open(main_folder + pdtb3.loc[i, 'DocID'], encoding='latin1') as f:
                 rawtext = f.read()
                 expected = ' '.join([rawtext[o[0]: o[1]] for o in spanlist]).lower()
             if pdtb3.loc[i, 'Conn1'] not in expected:
@@ -67,7 +67,7 @@ def correct_conn_char_span(pdtb3, main_folder):
     print("Number of incorrect conn span list", len(false_conn_list))
     print("begin correcting")
     for i in false_conn_list:
-        with open(main_folder+pdtb3.loc[i,'DocID']) as f:
+        with open(main_folder+pdtb3.loc[i,'DocID'], encoding='latin1') as f:
             rawtext = f.read().lower()
             start = int(pdtb3.loc[i, 'Conn_SpanList'].split('..')[0])
             distance = [abs(m.start() - start) for m in re.finditer(pdtb3.loc[i,'Conn1'], rawtext, )]
