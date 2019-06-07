@@ -63,68 +63,12 @@ def correct_conn_char_span(pdtb3, main_folder):
             pdtb3.loc[i,'Conn_SpanList'] = "4330..4335"
     return pdtb3
 
-def correct_arg_span(parse_dict, pdtb3):
-    """change are smaller than 2 char span"""
-    for i in range(len(pdtb3)):
-        if i%100==0:print(i)
-        if pdtb3.loc[i, 'DocID'] in parse_dict.keys():
-            char_start_list, char_end_list = get_list(parse_dict, pdtb3.loc[i, 'DocID'])
-
-            spanlist = get_span_list(pdtb3.loc[i, 'Arg1_SpanList'])
-            for span in spanlist:
-                if span[0] not in char_start_list:
-                    distance = [abs(span[0]-o) for o in char_start_list]
-                    index = distance.index(min(distance))
-                    span[0] = char_start_list[index]
-                if span[1] not in char_end_list:
-                    distance = [abs(span[1]-o) for o in char_end_list]
-                    index = distance.index(min(distance))
-                    span[1] = char_end_list[index]
-            span_string = get_span_string(spanlist)
-            pdtb3.loc[i, 'Arg1_SpanList'] = span_string
-
-            spanlist = get_span_list(pdtb3.loc[i, 'Arg2_SpanList'])
-            for span in spanlist:
-                if span[0] not in char_start_list:
-                    distance = [abs(span[0]-o) for o in char_start_list]
-                    index = distance.index(min(distance))
-                    span[0] = char_start_list[index]
-                if span[1] not in char_end_list:
-                    distance = [abs(span[1]-o) for o in char_end_list]
-                    index = distance.index(min(distance))
-                    span[1] = char_end_list[index]
-            span_string = get_span_string(spanlist)
-            pdtb3.loc[i, 'Arg2_SpanList'] = span_string
-
-    return pdtb3
 
 
-def merge3dicts(x, y, z):
-    m = x.copy()
-    m.update(y)
-    m.update(z)
-    return m
 
 
-def get_list(parse_dict, doc):
-    doc = parse_dict[doc]['sentences']
-    char_start_list = []
-    char_end_list = []
-    for sentence in doc:
-        for word in sentence['words']:
-            char_start_list.append(word[1]['CharacterOffsetBegin'])
-            char_end_list.append(word[1]['CharacterOffsetEnd'])
-    return char_start_list, char_end_list
 
 
-def get_span_string(span_list):
-    ret = ''
-    for span in span_list:
-        ret += str(span[0])
-        ret += '..'
-        ret += str(span[1])
-        ret += ';'
-    return ret[:-1]
 
 if __name__ == "__main__":
     gold_folder = '/home/pengfei/data/PDTB-3.0/data/gold/'
