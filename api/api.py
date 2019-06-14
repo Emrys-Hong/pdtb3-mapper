@@ -148,9 +148,9 @@ class PDTB3:
     def get_sent_words(self, docid, sent_id):
         return self.parse_dict[docid]['sentences'][sent_id]['words']
 
-    def get_related_doc(parse_data, docid):
+    def get_related_doc(self, docid):
         ret = []
-        for i, r in enumerate(parse_data):
+        for i, r in enumerate(self.parse_data):
             if r['DocID'] == docid:
                 ret.append(r)
         return ret
