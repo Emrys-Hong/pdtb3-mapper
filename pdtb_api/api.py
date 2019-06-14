@@ -61,7 +61,7 @@ class PDTB3:
         Returns:
                 parse_tree(str)
         """
-        return self.parse_tree[docid]['sentences'][sentid]['parsetree'] 
+        return self.parse_dict[docid]['sentences'][sentid]['parsetree'] 
 
     def get_syntax_tree(self, docid, sentid):
         """
