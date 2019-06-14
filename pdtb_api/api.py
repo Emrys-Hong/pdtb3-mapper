@@ -83,7 +83,7 @@ class PDTB3:
                     highlighted sentence for each relation i
                     arg1 is highlighted using red color
                     connective(if any) is highlighted using underline
-                    arg2 is highlighted bold
+                    arg2 is highlighted blue 
         """
         hstr = ""
         r = self.parse_data[i]
@@ -102,7 +102,7 @@ class PDTB3:
                 if check_if_arg(token_id, sent_id, Arg1_token_id):
                     hstr += color.RED + word[0] + color.END + ' '
                 elif check_if_arg(token_id, sent_id, Arg2_token_id):
-                    hstr += color.BOLD + word[0] + color.END + ' '
+                    hstr += color.BLUE + word[0] + color.END + ' '
                 elif Type in ['Explicit', 'AltLex', 'AltLexC']:
                     if check_if_arg(token_id, sent_id, Conn_token_id):
                         hstr += color.UNDERLINE + word[0] + color.END + ' '
@@ -110,8 +110,50 @@ class PDTB3:
                     hstr += word[0] + ' '
         return hstr
 
+    def get_highlighted_parsetree(self, i):
+        trees = ""
+        r = self.parse_data[i]
+        relation_sent_id = list(set([o[3] for o in r['Arg1']['TokenList']] + [o[3] for o in r['Arg2']['TokenList']]))
+        sense = r['Sense']
+        docid = r['DocID']
+        Type = r['Type']
+        Arg1_token_id = [(o[3],o[4]) for o in r['Arg1']['TokenList']]
+        Arg2_token_id = [(o[3],o[4]) for o in r['Arg2']['TokenList']]
+        if Type in ['Explicit', 'AltLex', 'AltLexC']: Conn_token_id = [(o[3],o[4]) for o in r['Connective']['TokenList']]
+
+        for sent_id in relation_sent_id:
+            parse_tree_list = str(self.get_syntax_tree(docid, sent_id).tree).split('\n')
+            token_id = -1
+            for prefix in parse_tree_list:
+                if self._replace(prefix) == '':
+                    trees += prefix + '\n'
+                    continue
+                token_id += 1 
+                word = prefix.split('/-')[-1]
+                prefix = prefix.replace(word, '')
+                if check_if_arg(token_id, sent_id, Arg1_token_id):
+                    trees += prefix + color.RED + word + color.END + '\n'
+                elif check_if_arg(token_id, sent_id, Arg2_token_id):
+                    trees += prefix + color.BLUE + word + color.END + '\n'
+                elif Type in ['Explicit', 'AltLex', 'AltLexC']:
+                    if check_if_arg(token_id, sent_id, Conn_token_id):
+                        trees += prefix + color.UNDERLINE + word + color.END + '\n'
+                else:
+                    trees += prefix + word + '\n'
+        return trees 
+
+    def _replace(self, string):
+        return string.replace('|', '').replace(' ', '').replace('-', '').replace('/', '').replace('\\', '').replace('\t','')
+
     def get_sent_words(self, docid, sent_id):
         return self.parse_dict[docid]['sentences'][sent_id]['words']
+
+    def get_related_doc(parse_data, docid):
+        ret = []
+        for i, r in enumerate(parse_data):
+            if r['DocID'] == docid:
+                ret.append(r)
+        return ret
 
     def _get_token_dependency(self, sent_dependency, token_id):
         const = token_id+1
@@ -120,11 +162,11 @@ class PDTB3:
             token_id -= (dep_index - const)
             dep_index = self.get_dep_index(token_id, sent_dependency)
         return sent_dependency[token_id]
-    
+
     def _get_dep_index(self, index, sent_dependency):
 #         return int(sent_dependency[index][2].split('-')[-1])
         return self._get_index(sent_dependency[index][2])
-    
+
     def _get_index(self, text):
         return int(text.split('-')[-1])
 
