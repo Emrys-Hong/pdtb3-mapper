@@ -73,19 +73,18 @@ class PDTB:
         """
         return Syntax_tree(self.get_parse_tree(docid, sentid))
 
-    def get_highlighted_relation(self, i, verbose=False):
+    def get_highlighted_relation(self, i, v=False):
         """
-        Args:
+        args:
                 i(int): position in self.parse_data
                 verbose(bool): whether print other related info, docid, and sense
-        Returns:
+        returns:
                 hstr(str):
                     highlighted sentence for each relation i
                     arg1 is highlighted using red color
                     connective(if any) is highlighted green
                     arg2 is highlighted blue 
         """
-        hstr = ""
         r = self.parse_data[i]
         relation_sent_id = list(set([o[3] for o in r['Arg1']['TokenList']] + [o[3] for o in r['Arg2']['TokenList']]))
         sense = r['Sense']
@@ -94,7 +93,10 @@ class PDTB:
         Arg1_token_id = [(o[3],o[4]) for o in r['Arg1']['TokenList']]
         Arg2_token_id = [(o[3],o[4]) for o in r['Arg2']['TokenList']]
         if Type in ['Explicit', 'AltLex', 'AltLexC']: Conn_token_id = [(o[3],o[4]) for o in r['Connective']['TokenList']]
-        if verbose: hstr += 'DocID: ' + docid + ',\t' + 'Type: ' + Type + ',\t' + 'Sense: ' + sense[0] + '\n' 
+        hstr = "Relation: " + str(i) + ",  Green for Connective(if any), Red for Arg1 and Blue for Arg2. \n" + \
+                'DocID: ' + docid + ',\t' + 'Type: ' + Type + ',\t' + 'Sense: ' + sense[0] + ',\n' + \
+                'Arg1_sent_id: ' + ' '.join(list(set([str(o[3]) for o in r['Arg1']['TokenList']])))  + '\t' \
+                ',\t' + 'Arg2_sent_id: ' + ' '.join(list(set([str(o[3]) for o in r['Arg2']['TokenList']]))) + '\n' if v else ''
 
         for sent_id in relation_sent_id:
             sent = self.get_sent_words(docid, sent_id)
@@ -110,8 +112,19 @@ class PDTB:
                     hstr += word[0] + ' '
         return hstr
 
-    def get_highlighted_parsetree(self, i):
-        trees = ""
+    def get_highlighted_parsetree(self, i, v=False):
+        """
+        args:
+                i(int): position in self.parse_data
+                v(boolean): verbose
+        returns:
+                trees(str):
+                    highlighted sentence for each relation i
+                    arg1 is highlighted using red color
+                    connective(if any) is highlighted green
+                    arg2 is highlighted blue 
+        """
+
         r = self.parse_data[i]
         relation_sent_id = list(set([o[3] for o in r['Arg1']['TokenList']] + [o[3] for o in r['Arg2']['TokenList']]))
         sense = r['Sense']
@@ -119,7 +132,11 @@ class PDTB:
         Type = r['Type']
         Arg1_token_id = [(o[3],o[4]) for o in r['Arg1']['TokenList']]
         Arg2_token_id = [(o[3],o[4]) for o in r['Arg2']['TokenList']]
-        if Type in ['Explicit', 'AltLex', 'AltLexC']: Conn_token_id = [(o[3],o[4]) for o in r['Connective']['TokenList']]
+        Conn_token_id = [(o[3],o[4]) for o in r['Connective']['TokenList']] if Type in ['Explicit', 'AltLex', 'AltLexC'] else []
+        trees = "Relation: " + str(i) + ",  Green for Connective(if any), Red for Arg1 and Blue for Arg2. \n" + \
+                'DocID: ' + docid + ',\t' + 'Type: ' + Type + ',\t' + 'Sense: ' + sense[0] + ',\n' + \
+                'Arg1_sent_id: ' + ' '.join(list(set([str(o[3]) for o in r['Arg1']['TokenList']])))  + '\t' \
+                ',\t' + 'Arg2_sent_id: ' + ' '.join(list(set([str(o[3]) for o in r['Arg2']['TokenList']]))) + '\n' if v else ''
 
         for sent_id in relation_sent_id:
             parse_tree_list = str(self.get_syntax_tree(docid, sent_id).tree).split('\n')
@@ -135,8 +152,7 @@ class PDTB:
                     trees += prefix + color.RED + word + color.END + '\n'
                 elif check_if_arg(token_id, sent_id, Arg2_token_id):
                     trees += prefix + color.BLUE + word + color.END + '\n'
-                elif Type in ['Explicit', 'AltLex', 'AltLexC']:
-                    if check_if_arg(token_id, sent_id, Conn_token_id):
+                elif check_if_arg(token_id, sent_id, Conn_token_id):
                         trees += prefix + color.GREEN + word + color.END + '\n'
                 else:
                     trees += prefix + word + '\n'
@@ -204,5 +220,5 @@ class color:
 
 
 if __name__ == "__main__":
-    pdtb3 = PDTB3()
-    pdtb3.get_highlighted_relation(100)
+    pdtb3 = PDTB('/home/pengfei/data/pdtb_v2/all/conll/')
+    pdtb3.get_highlighted_parsetree(9)
