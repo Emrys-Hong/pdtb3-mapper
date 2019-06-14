@@ -1,8 +1,8 @@
 import codecs
 import json
-from syntax_tree import Syntax_tree
+from .syntax_tree import Syntax_tree
 
-class PDTB3:
+class PDTB:
     def __init__(self, data_path='/home/pengfei/data/PDTB-3.0/all/conll/'):
         """Args:
             data_path(str): path to all/conll folder
@@ -82,7 +82,7 @@ class PDTB3:
                 hstr(str):
                     highlighted sentence for each relation i
                     arg1 is highlighted using red color
-                    connective(if any) is highlighted using underline
+                    connective(if any) is highlighted green
                     arg2 is highlighted blue 
         """
         hstr = ""
@@ -105,7 +105,7 @@ class PDTB3:
                     hstr += color.BLUE + word[0] + color.END + ' '
                 elif Type in ['Explicit', 'AltLex', 'AltLexC']:
                     if check_if_arg(token_id, sent_id, Conn_token_id):
-                        hstr += color.UNDERLINE + word[0] + color.END + ' '
+                        hstr += color.GREEN + word[0] + color.END + ' '
                 else:
                     hstr += word[0] + ' '
         return hstr
@@ -137,7 +137,7 @@ class PDTB3:
                     trees += prefix + color.BLUE + word + color.END + '\n'
                 elif Type in ['Explicit', 'AltLex', 'AltLexC']:
                     if check_if_arg(token_id, sent_id, Conn_token_id):
-                        trees += prefix + color.UNDERLINE + word + color.END + '\n'
+                        trees += prefix + color.GREEN + word + color.END + '\n'
                 else:
                     trees += prefix + word + '\n'
         return trees 
