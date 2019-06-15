@@ -63,6 +63,33 @@ class PDTB:
         """
         return self.parse_dict[docid]['sentences'][sentid]['parsetree'] 
 
+    def get_arg_sent_id(self, i, x):
+        """
+        Args:
+                i: relation number
+                x(str): Arg1, Arg2, Connective
+        Returns: list of all the sentence id containing x
+        """
+        return list(set([o[3] for o in self.parse_data[i][x]['TokenList']]))
+
+    def get_arg_token_list(self, i, x):
+        """
+        Args:
+                i: relation number
+                x(str): Arg1, Arg2, Connective
+        Returns: [ (sent_id, token_id_in_sent), ...]
+        """
+        return [(o[4], o[5]) for o in self.parse_data[i][x]['TokenList']]
+
+    def get_arg_token_list_in_doc(self, i, x):
+        """
+        Args:
+                i: relation number
+                x(str): Arg1, Arg2, Connective
+        Returns: [ token_id_in_doc, ...]
+        """
+        return [(o[2]) for o in self.parse_data[i][x]['TokenList']]
+
     def get_syntax_tree(self, docid, sentid):
         """
         Args:
