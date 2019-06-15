@@ -37,8 +37,8 @@ class PDTB:
             token_id = self.get_index(dep_text[2]) - 1
             dependencies.append([dep_relation, head_id, token_id])
         return dependencies
-    
-    def get_tokens(self, docid, token_indices):
+
+    def get_tokens_text(self, docid, token_indices):
         """
         Args:
                 docid(str)
@@ -52,7 +52,21 @@ class PDTB:
             token_text = doc[sent_id]['words'][token_id][0]
             token_list.append(token_text)
         return token_list
-    
+
+    def get_tokens_indices_with_text(self, docid, sent_id):
+        """
+        Args:
+                docid(str)
+                sent_id(int)
+        Returns:
+                token_list[ (sent_number(int), token_index_in_sent(int), token(str)), ...]
+        """
+        doc = self.parse_dict[docid]['sentences']
+        token_list = []
+        for i, token in enumerate(doc[sent_id]['words']):
+            token_list.append( (sent_id, i, token[0]) )
+        return token_list
+
     def get_parse_tree(self, docid, sentid):
         """
         Args:
@@ -72,6 +86,21 @@ class PDTB:
         """
         return list(set([o[3] for o in self.parse_data[i][x]['TokenList']]))
 
+    def arg_is_whole_sentence(self, i, arg):
+        """Args:
+                i(int): parse_data index
+                arg(str): Arg1, Arg2
+        Returns:
+                whether arg takes entire span
+        """
+        docid = self.parse_data[i]['DocID']
+        arg_token_list = self.get_arg_token_list(i, arg)
+        arg_sent_id = self.get_arg_sent_id(i, arg)
+        sent_token_list = []
+        for sentid in arg_sent_id:
+            sent_token_list.extend(self.get_tokens_indices_with_text(docid, sentid))
+        return same_sentence(sent_token_list, arg_token_list)
+
     def get_arg_token_list(self, i, x):
         """
         Args:
@@ -79,7 +108,7 @@ class PDTB:
                 x(str): Arg1, Arg2, Connective
         Returns: [ (sent_id, token_id_in_sent), ...]
         """
-        return [(o[4], o[5]) for o in self.parse_data[i][x]['TokenList']]
+        return [(o[3], o[4]) for o in self.parse_data[i][x]['TokenList']]
 
     def get_arg_token_list_in_doc(self, i, x):
         """
@@ -185,6 +214,17 @@ class PDTB:
                     trees += prefix + word + '\n'
         return trees 
 
+    def get_num_of_seg_of_arg(self, i, x):
+        arg = self.get_arg_token_list_in_doc(i, x)
+        n=0
+        pred_index = -1
+        for token in arg:
+            if token != pred_index:
+                pred_index = token
+                n += 1
+            pred_index += 1
+        return n
+
     def _replace(self, string):
         return string.replace('|', '').replace(' ', '').replace('-', '').replace('/', '').replace('\\', '').replace('\t','')
 
@@ -246,6 +286,15 @@ class color:
     END = '\033[0m'
 
 
+def same_sentence(sent, arg):
+    punct = """!"#&'*+,-..../:;<=>?@[\]^_`|~""" + "`" + "''"
+    while sent[-1][2] in punct:
+        sent.pop()
+    while sent[0][2] in punct:
+        sent.pop(0)
+    return arg == [(o[0],o[1]) for o in sent]
+
 if __name__ == "__main__":
-    pdtb3 = PDTB('/home/pengfei/data/pdtb_v2/all/conll/')
-    pdtb3.get_highlighted_parsetree(9)
+    pdtb2 = '/home/pengfei/data/pdtb_v2/all/conll/'
+    pdtb3 = PDTB()
+    print(pdtb3.arg_is_whole_sentence(2535, 'Arg1'))
