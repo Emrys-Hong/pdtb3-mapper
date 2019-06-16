@@ -1,6 +1,7 @@
 import codecs
 import json
 from .syntax_tree import Syntax_tree
+import itertools
 
 class PDTB:
     def __init__(self, data_path='/home/pengfei/data/PDTB-3.0/all/conll/'):
@@ -267,10 +268,72 @@ class PDTB:
         parse_dict.update(self.parse_dict_test)
         return parse_dict
 
+    def _get_constituents(self, docid, sentid, conn_index):
+        """
+        Args:
+                docid(str)
+                sentid(int)
+                conn_index(list[int])
+        Returns:
+                [ [(token_index, text),...], ...]"""
+        syntax_tree = self.get_syntax_tree(docid, sentid)
+        if syntax_tree.tree == None:
+            return []
+        all_leaves = syntax_tree.tree.get_leaves()
+        conn_indices = conn_index
+        constituent_nodes = []
+        if len(conn_indices) == 1:# like and or so...
+            conn_node = syntax_tree.get_leaf_node_by_token_index(conn_indices[0]).up
+        else:
+            conn_node = syntax_tree.get_common_ancestor_by_token_indices(conn_indices)
+            conn_leaves = set([all_leaves.index(syntax_tree.get_leaf_node_by_token_index(conn_index)) for conn_index in conn_indices])
+            children = conn_node.get_children()
+            for child in children:
+                leaves = set([all_leaves.index(n) for n in child.get_leaves()])
+                if list(leaves-conn_leaves)!=[]: constituent_nodes.append(list(leaves-conn_leaves))
+        curr = conn_node
+        while not curr.is_root():
+            sibs = [ [all_leaves.index(n) for n in sib] for sib in syntax_tree.get_siblings(curr)]
+            constituent_nodes.extend(sibs)
+            curr = curr.up
+
+        tokens_indices_with_text = self.get_tokens_indices_with_text(docid, sentid)
+        subtree_list = [ [(o,tokens_indices_with_text[o][2]) for o in node] for node in constituent_nodes]
+        return subtree_list
+
+    
+    def arg_is_contained(self, i, arg):
+        docid = self.parse_data[i]['DocID']
+        sentid = self.get_arg_sent_id(i, arg)
+        conn_indices = [o[1] for o in self.get_arg_token_list(i, 'Connective')]
+        subtree_list = self._get_constituents(docid, sentid[0], conn_indices)
+        merged_consti_list = merge_consti(subtree_list)
+        token_list = self.get_arg_token_list(i, arg)
+        start,end = token_list[0][1], token_list[-1][1]
+        # filter results
+        consti_list = [k for k in merged_consti_list.keys() if k[0]>=start and k[1]<=end]
+        # generate results
+        results = []
+        for i in range(1, len(consti_list)+1):
+            for subset in itertools.combinations(consti_list, i):
+                results.append(expand(subset))
+        # check
+        return [o[1] for o in token_list] in results
+
+
 
 def check_if_arg(token_id, sent_id, Arg_token_list):
     return (sent_id, token_id) in Arg_token_list
 
+def merge_consti(subtree_list):
+    return {(o[0][0],o[-1][0]):i for i,o in enumerate(subtree_list)}
+
+def expand(subset):
+    ret = []
+    for subsubset in subset:
+        for i in range(subsubset[0], subsubset[1]+1):
+            ret.append(i)
+    return sorted(ret)
 
 class color:
     PURPLE = '\033[95m'
@@ -298,3 +361,4 @@ if __name__ == "__main__":
     pdtb2 = '/home/pengfei/data/pdtb_v2/all/conll/'
     pdtb3 = PDTB()
     print(pdtb3.arg_is_whole_sentence(2535, 'Arg1'))
+    print(pdtb3.arg_is_contained(34, 'Arg1'))
