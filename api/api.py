@@ -2,6 +2,8 @@ import codecs
 import json
 from .syntax_tree import Syntax_tree
 import itertools
+import copy
+import re
 
 class PDTB:
     def __init__(self, data_path='/home/pengfei/data/PDTB-3.0/all/conll/'):
@@ -226,6 +228,14 @@ class PDTB:
             pred_index += 1
         return n
 
+    def get_subtree_length(self, i, arg):
+        """Returns len of potential segments for explicit SS case"""
+        docid = self.parse_data[i]['DocID']
+        sentid = self.get_arg_sent_id(i, arg)
+        conn_indices = [o[1] for o in self.get_arg_token_list(i, 'Connective')]
+        subtree_list = self._get_constituents(docid, sentid[0], conn_indices)
+        return len(subtree_list)
+
     def _replace(self, string):
         return string.replace('|', '').replace(' ', '').replace('-', '').replace('/', '').replace('\\', '').replace('\t','')
 
@@ -302,6 +312,59 @@ class PDTB:
         return subtree_list
 
     
+    def _arg_clauses(self, docid, sentid):
+        token_indices_with_text = self.get_tokens_indices_with_text(docid, sentid)
+        sent_tokens = [(i,t) for _,i,t in token_indices_with_text]
+        # step 1: split the word
+        punctuation = "...,:;?!~--"
+        _clause_indices_list = []#[[(1,"I")..], ..]
+        temp = []
+        for index, word in sent_tokens:
+            if word not in punctuation:
+                temp.append((index, word))
+            else:
+                if temp != []:
+                    _clause_indices_list.append(temp)
+                    temp = []
+        if temp != []: _clause_indices_list.append(temp)
+        # strip punctuations in the start or end 
+        clause_indices_list = []
+        for clause_indices in _clause_indices_list:
+            temp = list_strip_punctuation(clause_indices)
+            if temp != []:
+                clause_indices_list.append([item[0] for item in temp])
+
+        # step2: then use SBAR tag in its parse tree to split each part into clauses.
+        syntax_tree = self.get_syntax_tree(docid, sentid)
+        if syntax_tree.tree == None:
+            return []
+        clause_list = []
+        for clause_indices in clause_indices_list:
+            clause_tree = _get_subtree(syntax_tree, clause_indices)
+            flag = 0
+            for node in clause_tree.tree.traverse(strategy="levelorder"):
+                if node.name == "SBAR":
+                    temp1 = [node.index for node in node.get_leaves()]
+                    temp2 = sorted(list(set(clause_indices) - set(temp1)))
+
+                    if temp2 == []:
+                        clause_list.append(temp1)
+                    else:
+                        if temp1[0] < temp2 [0]:
+                            clause_list.append(temp1)
+                            clause_list.append(temp2)
+                        else:
+                            clause_list.append(temp2)
+                            clause_list.append(temp1)
+                    flag = 1
+                    break
+            if flag == 0:
+                clause_list.append(clause_indices)
+        clauses = []
+        for clause_indices in clause_list:
+            clauses.append(clause_indices)
+        return [ [(o,token_indices_with_text[o][2]) for o in c] for c in clauses]
+
     def arg_is_contained(self, i, arg):
         docid = self.parse_data[i]['DocID']
         sentid = self.get_arg_sent_id(i, arg)
@@ -320,6 +383,24 @@ class PDTB:
         # check
         return [o[1] for o in token_list] in results
 
+    def arg_is_contained_clause(self, i, arg):
+        docid = self.parse_data[i]['DocID']
+        sentid = self.get_arg_sent_id(i, arg)
+        clause_list = self._arg_clauses(docid, sentid[0])
+        merged_clause_list = merge_consti(clause_list)
+        token_list = self.get_arg_token_list(i, arg)
+        token_text = self.get_tokens_text(docid, token_list)
+        assert(len(token_list) == len(token_text))
+        start,end = token_list[0][1], token_list[-1][1]
+        # filter results
+        clause_list = [k for k in merged_clause_list.keys() if k[0]>=start and k[1]<=end]
+        # generate results
+        results = []
+        for i in range(1, len(clause_list)+1):
+            for subset in itertools.combinations(clause_list, i):
+                results.append(expand(subset))
+        # check
+        return contained([o[1] for o in token_list], results, token_text)
 
 
 def check_if_arg(token_id, sent_id, Arg_token_list):
@@ -334,6 +415,47 @@ def expand(subset):
         for i in range(subsubset[0], subsubset[1]+1):
             ret.append(i)
     return sorted(ret)
+
+def contained(token_list, results, token_text):
+    punctuation = """!"#&'*+,-..../:;<=>?@[\]^_`|~""" + "``" + "''"
+    for result in results:
+        remain = set(token_list).symmetric_difference(set(result))
+        whether = True
+        for r in remain:
+            if r not in token_list: continue
+            if token_text[token_list.index(r)] not in punctuation:
+                whether = False
+        if whether: return True
+    return False
+
+def list_strip_punctuation(list):
+    punctuation = """!"#&'*+,-..../:;<=>?@[\]^_`|~""" + "``" + "''"
+    i = 0
+    while i < len(list) and list[i][1] in punctuation + "-LCB--LRB-":
+        i += 1
+    if i == len(list):
+        return []
+    j = len(list) - 1
+    while j >= 0 and list[j][1] in punctuation + "-RRB--RCB-":
+        j -= 1
+    return list[i: j+1]
+
+def _get_subtree(syntax_tree, clause_indices):
+    copy_tree = copy.deepcopy(syntax_tree)
+
+    for index, leaf in enumerate(copy_tree.tree.get_leaves()):
+        leaf.add_feature("index",index)
+
+    clause_nodes = []
+    for index in clause_indices:
+        node = copy_tree.get_leaf_node_by_token_index(index)
+        clause_nodes.append(node)
+
+    for node in copy_tree.tree.traverse(strategy="levelorder"):
+        node_leaves = node.get_leaves()
+        if set(node_leaves) & set(clause_nodes) == set([]):
+            node.detach()
+    return copy_tree
 
 class color:
     PURPLE = '\033[95m'
