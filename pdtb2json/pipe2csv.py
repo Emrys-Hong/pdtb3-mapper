@@ -157,19 +157,31 @@ def get_span_string(span_list):
         ret += ';'
     return ret[:-1]
 
+
+def load_and_merge_parse_dicts(folder):
+    folder = Path(folder)
+    filenames = os.listdir(folder)
+    ret = {}
+    for n in filenames:
+        ret.update(json.loads(codecs.open(folder/n, encoding='latin-1').read()))
+    return ret
+
+
 if __name__ == "__main__":
-    gold_folder = '/home/pengfei/data/PDTB-3.0/data/gold/'
+    gold_folder = '../dataset/gold/'
     df = generate_df(gold_folder)
-    raw_folder = '/home/pengfei/data/PDTB-3.0/all/raw/'
+    df.to_csv('pdtb3_without_correction.csv', index=False)
+    raw_folder = '../dataset/raw/'
     df = correct_conn_char_span(df, raw_folder)
     print("loading conll datasets")
-    conll_train = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-train/pdtb-parses.json'
-    parse_dict_train = json.loads(codecs.open(conll_train, encoding='utf-8', errors='ignore').read())
-    conll_dev = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-dev/pdtb-parses.json'
-    parse_dict_dev = json.loads(codecs.open(conll_dev, encoding='utf-8', errors='ignore').read())
-    conll_test = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-test/pdtb-parses.json'
-    parse_dict_test = json.loads(codecs.open(conll_test, encoding='utf-8', errors='ignore').read())
-    print("datasets loaded")
-    parse_dict = merge3dicts(parse_dict_train, parse_dict_dev, parse_dict_test)
+#     conll_train = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-train/pdtb-parses.json'
+#     parse_dict_train = json.loads(codecs.open(conll_train, encoding='utf-8', errors='ignore').read())
+#     conll_dev = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-dev/pdtb-parses.json'
+#     parse_dict_dev = json.loads(codecs.open(conll_dev, encoding='utf-8', errors='ignore').read())
+#     conll_test = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-test/pdtb-parses.json'
+#     parse_dict_test = json.loads(codecs.open(conll_test, encoding='utf-8', errors='ignore').read())
+#     print("datasets loaded")
+#     parse_dict = merge3dicts(parse_dict_train, parse_dict_dev, parse_dict_test)
+    parse_dict = load_and_merge_parse_dicts('../dataset/pdtb-parses')
     df = correct_arg_span(parse_dict, df)
     df.to_csv('pdtb3.csv', index=False)
