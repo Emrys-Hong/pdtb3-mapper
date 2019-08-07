@@ -1,6 +1,7 @@
 import codecs
 import json
 from .syntax_tree import Syntax_tree
+from nltk.tree import Tree
 import itertools
 import copy
 import re
@@ -131,6 +132,64 @@ class PDTB:
                 (Syntax_tree)
         """
         return Syntax_tree(self.get_parse_tree(docid, sentid))
+
+    def get_relation_chomsky_syntax_tree(self, i):
+        """
+        Args:
+                i: relation number
+        Returns:
+            if arg1 and arg2 have different sentence:
+                {'Arg1': [arg1_parse_trees], 'Arg2', [arg2_parse_trees]}
+            if arg1 and arg2 have the same sentence:
+                (syntax_tree)
+            if arg1 or arg2 contains more than 1 sentence:
+                None
+        """
+        arg1_sent_id = self.get_arg_sent_id(i, 'Arg1')
+        arg2_sent_id = self.get_arg_sent_id(i, 'Arg2')
+        if len(arg1_sent_id) == len(arg2_sent_id) == 1:
+            # SS case
+            if arg1_sent_id[0] == arg2_sent_id[0]:
+                nltk_tree = Tree.fromstring(self.get_parse_tree(self.parse_data[i]['DocID'], arg1_sent_id[0]))
+                nltk_tree.chomsky_normal_form()
+                chomsky_tree = str(nltk_tree)
+                return Syntax_tree(chomsky_tree)
+            # PS case
+            elif arg1_sent_id[0] < arg2_sent_id[0]:
+                nltk_arg1_tree = Tree.fromstring(self.get_parse_tree(self.parse_data[i]['DocID'], arg1_sent_id[0]))
+                nltk_arg2_tree = Tree.fromstring(self.get_parse_tree(self.parse_data[i]['DocID'], arg2_sent_id[0]))
+                nltk_arg1_tree.chomsky_normal_form()
+                nltk_arg2_tree.chomsky_normal_form()
+                chomsky_arg1_tree = str(nltk_arg1_tree)
+                chomsky_arg2_tree = str(nltk_arg2_tree)
+                return {'Arg1': Syntax_tree(chomsky_arg1_tree), \
+                        'Arg2': Syntax_tree(chomsky_arg2_tree)  }
+        else:
+            return None
+
+    def get_relation_chomsky_parse_tree(self, i):
+        arg1_sent_id = self.get_arg_sent_id(i, 'Arg1')
+        arg2_sent_id = self.get_arg_sent_id(i, 'Arg2')
+        if len(arg1_sent_id) == len(arg2_sent_id) == 1:
+            # SS case
+            if arg1_sent_id[0] == arg2_sent_id[0]:
+                nltk_tree = Tree.fromstring(self.get_parse_tree(self.parse_data[i]['DocID'], arg1_sent_id[0]))
+                nltk_tree.chomsky_normal_form()
+                chomsky_tree = str(nltk_tree)
+                return chomsky_tree
+            # PS case
+            elif arg1_sent_id[0] < arg2_sent_id[0]:
+                nltk_arg1_tree = Tree.fromstring(self.get_parse_tree(self.parse_data[i]['DocID'], arg1_sent_id[0]))
+                nltk_arg2_tree = Tree.fromstring(self.get_parse_tree(self.parse_data[i]['DocID'], arg2_sent_id[0]))
+                nltk_arg1_tree.chomsky_normal_form()
+                nltk_arg2_tree.chomsky_normal_form()
+                chomsky_arg1_tree = str(nltk_arg1_tree)
+                chomsky_arg2_tree = str(nltk_arg2_tree)
+                return {'Arg1': chomsky_arg1_tree, \
+                        'Arg2': chomsky_arg2_tree  }
+        else:
+            return None
+
 
     def get_highlighted_relation(self, i, v=False):
         """
@@ -311,7 +370,7 @@ class PDTB:
         subtree_list = [ [(o,tokens_indices_with_text[o][2]) for o in node] for node in constituent_nodes]
         return subtree_list
 
-    
+
     def _arg_clauses(self, docid, sentid):
         token_indices_with_text = self.get_tokens_indices_with_text(docid, sentid)
         sent_tokens = [(i,t) for _,i,t in token_indices_with_text]
@@ -482,5 +541,5 @@ def same_sentence(sent, arg):
 if __name__ == "__main__":
     pdtb2 = '/home/pengfei/data/pdtb_v2/all/conll/'
     pdtb3 = PDTB()
-    print(pdtb3.arg_is_whole_sentence(2535, 'Arg1'))
-    print(pdtb3.arg_is_contained(34, 'Arg1'))
+    #print(pdtb3.arg_is_whole_sentence(2535, 'Arg1'))
+    #print(pdtb3.arg_is_contained(34, 'Arg1'))
