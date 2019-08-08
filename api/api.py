@@ -277,7 +277,7 @@ class PDTB:
         return trees 
 
 
-    def get_highlighted_parse_tree(self, i, v=True):
+    def get_highlighted_parsetree(self, i, v=True):
         """
         prints out parse tree with color coded relationship
         """
@@ -299,12 +299,13 @@ class PDTB:
             leaves = syntax_tree.tree.get_leaves()
             for token_id,l in enumerate(leaves):
                 if check_if_arg(token_id, sent_id, Arg1_token_id):
-                    leaves.name = color.RED + leaves.name + color.END
+                    l.name = color.RED + l.name + color.END
                 elif check_if_arg(token_id, sent_id, Arg2_token_id):
-                    leaves.name = color.BLUE + leaves.name + color.END
+                    l.name = color.BLUE + l.name + color.END
                 elif check_if_arg(token_id, sent_id, Conn_token_id):
-                    leaves.name = color.GREEN + leaves.name + color.END
-            sytax_tree.print_tree()
+                    l.name = color.GREEN + l.name + color.END
+            syntax_tree.print_tree()
+        print('\n\n')
 
 
 
