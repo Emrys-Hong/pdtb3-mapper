@@ -230,7 +230,7 @@ class PDTB:
                     hstr += word[0] + ' '
         return hstr
 
-    def get_highlighted_parsetree(self, i, v=False):
+    def get_highlighted_parsetree_old(self, i, v=False):
         """
         args:
                 i(int): position in self.parse_data
@@ -275,6 +275,38 @@ class PDTB:
                 else:
                     trees += prefix + word + '\n'
         return trees 
+
+
+    def get_highlighted_parse_tree(self, i, v=True):
+        """
+        prints out parse tree with color coded relationship
+        """
+        r = self.parse_data[i]
+        relation_sent_id = list(set([o[3] for o in r['Arg1']['TokenList']] + [o[3] for o in r['Arg2']['TokenList']]))
+        sense = r['Sense']
+        docid = r['DocID']
+        Type = r['Type']
+        Arg1_token_id = [(o[3],o[4]) for o in r['Arg1']['TokenList']]
+        Arg2_token_id = [(o[3],o[4]) for o in r['Arg2']['TokenList']]
+        Conn_token_id = [(o[3],o[4]) for o in r['Connective']['TokenList']] if Type in ['Explicit', 'AltLex', 'AltLexC'] else []
+        verbose = "Relation: " + str(i) + ",  Green for Connective(if any), Red for Arg1 and Blue for Arg2. \n" + \
+                'DocID: ' + docid + ',\t' + 'Type: ' + Type + ',\t' + 'Sense: ' + sense[0] + ',\n' + \
+                'Arg1_sent_id: ' + ' '.join(list(set([str(o[3]) for o in r['Arg1']['TokenList']])))  + '\t' \
+                ',\t' + 'Arg2_sent_id: ' + ' '.join(list(set([str(o[3]) for o in r['Arg2']['TokenList']]))) + '\n' if v else ''
+        if v: print(verbose)
+        for sent_id in relation_sent_id:
+            syntax_tree = self.get_syntax_tree(docid, sent_id)
+            leaves = syntax_tree.tree.get_leaves()
+            for token_id,l in enumerate(leaves):
+                if check_if_arg(token_id, sent_id, Arg1_token_id):
+                    leaves.name = color.RED + leaves.name + color.END
+                elif check_if_arg(token_id, sent_id, Arg2_token_id):
+                    leaves.name = color.BLUE + leaves.name + color.END
+                elif check_if_arg(token_id, sent_id, Conn_token_id):
+                    leaves.name = color.GREEN + leaves.name + color.END
+            sytax_tree.print_tree()
+
+
 
     def get_num_of_seg_of_arg(self, i, x):
         arg = self.get_arg_token_list_in_doc(i, x)
