@@ -131,7 +131,12 @@ class PDTB:
         Returns:
                 (Syntax_tree)
         """
-        return Syntax_tree(self.get_parse_tree(docid, sentid))
+        parse_tree = self.get_parse_tree(docid, sentid)
+        if parse_tree == None:
+            raise Exception('Parse tree is not generated')
+        if parse_tree.strip() == '':
+            raise Exception('Parse tree is not generated')
+        return Syntax_tree()
 
     def get_relation_chomsky_syntax_tree(self, i):
         """
@@ -295,17 +300,20 @@ class PDTB:
                 ',\t' + 'Arg2_sent_id: ' + ' '.join(list(set([str(o[3]) for o in r['Arg2']['TokenList']]))) + '\n' if v else ''
         if v: print(verbose)
         for sent_id in relation_sent_id:
-            syntax_tree = self.get_syntax_tree(docid, sent_id)
-            leaves = syntax_tree.tree.get_leaves()
-            for token_id,l in enumerate(leaves):
-                if check_if_arg(token_id, sent_id, Arg1_token_id):
-                    l.name = color.RED + l.name + color.END
-                elif check_if_arg(token_id, sent_id, Arg2_token_id):
-                    l.name = color.BLUE + l.name + color.END
-                elif check_if_arg(token_id, sent_id, Conn_token_id):
-                    l.name = color.GREEN + l.name + color.END
-            syntax_tree.print_tree()
-        print('\n\n')
+            try:
+                syntax_tree = self.get_syntax_tree(docid, sent_id)
+                leaves = syntax_tree.tree.get_leaves()
+                for token_id,l in enumerate(leaves):
+                    if check_if_arg(token_id, sent_id, Arg1_token_id):
+                        l.name = color.RED + l.name + color.END
+                    elif check_if_arg(token_id, sent_id, Arg2_token_id):
+                        l.name = color.BLUE + l.name + color.END
+                    elif check_if_arg(token_id, sent_id, Conn_token_id):
+                        l.name = color.GREEN + l.name + color.END
+                syntax_tree.print_tree()
+                print('\n\n')
+            except Exception as e:
+                print(e)
 
 
 
