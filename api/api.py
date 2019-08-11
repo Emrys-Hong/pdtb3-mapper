@@ -230,7 +230,7 @@ class PDTB:
                     hstr += word[0] + ' '
         return hstr
 
-    def get_highlighted_parsetree_old(self, i, v=False):
+    def get_highlighted_parsetree(self, i, v=True):
         """
         args:
                 i(int): position in self.parse_data
@@ -277,7 +277,7 @@ class PDTB:
         return trees 
 
 
-    def get_highlighted_parsetree(self, i, v=True):
+    def print_highlighted_parsetree(self, i, v=True):
         """
         prints out parse tree with color coded relationship
         """
