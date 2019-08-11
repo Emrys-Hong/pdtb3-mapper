@@ -1,5 +1,5 @@
 #coding:utf-8
-from syntax_tree import Syntax_tree
+from .syntax_tree import Syntax_tree
 class Constituent:
     def __init__(self, syntax_tree, node):
         self.syntax_tree = syntax_tree
