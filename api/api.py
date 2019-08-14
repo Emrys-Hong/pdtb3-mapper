@@ -233,7 +233,7 @@ class PDTB:
                     hstr += word[0] + ' '
         return hstr
 
-    def get_highlighted_parsetree(self, i, v=True):
+    def get_highlighted_parsetree(self, i, v=False):
         """
         args:
                 i(int): position in self.parse_data
@@ -254,30 +254,35 @@ class PDTB:
         Arg1_token_id = [(o[3],o[4]) for o in r['Arg1']['TokenList']]
         Arg2_token_id = [(o[3],o[4]) for o in r['Arg2']['TokenList']]
         Conn_token_id = [(o[3],o[4]) for o in r['Connective']['TokenList']] if Type in ['Explicit', 'AltLex', 'AltLexC'] else []
-        trees = "Relation: " + str(i) + ",  Green for Connective(if any), Red for Arg1 and Blue for Arg2. \n" + \
-                'DocID: ' + docid + ',\t' + 'Type: ' + Type + ',\t' + 'Sense: ' + sense[0] + ',\n' + \
-                'Arg1_sent_id: ' + ' '.join(list(set([str(o[3]) for o in r['Arg1']['TokenList']])))  + '\t' \
-                ',\t' + 'Arg2_sent_id: ' + ' '.join(list(set([str(o[3]) for o in r['Arg2']['TokenList']]))) + '\n' if v else ''
 
+        verbose = "Relation: " + str(i) + ",  Green for Connective(if any), Red for Arg1 and Blue for Arg2. \n" + \
+                'DocID: ' + docid + ',\t' + 'Type: ' + Type + ',\t' + 'Sense: ' + sense[0] + ',\n' + \
+                'Arg1_sent_id: ' + ' '.join(sorted(list(set([str(o[3]) for o in r['Arg1']['TokenList']]))))  + '\t' \
+                ',\t' + 'Arg2_sent_id: ' + ' '.join(sorted(list(set([str(o[3]) for o in r['Arg2']['TokenList']])))) + '\n' 
+        if v:
+            print(verbose)
+        
+        ret = []
         for sent_id in relation_sent_id:
-            parse_tree_list = str(self.get_syntax_tree(docid, sent_id).tree).split('\n')
-            token_id = -1
-            for prefix in parse_tree_list:
-                if self._replace(prefix) == '':
-                    trees += prefix + '\n'
-                    continue
-                token_id += 1 
-                word = prefix.split('/-')[-1]
-                prefix = prefix.replace(word, '')
+            try:
+                syntax_tree = self.get_syntax_tree(docid, sent_id)
+            except Exception as e:
+                print(e)
+                continue
+            leaves = syntax_tree.tree.get_leaves()
+            for token_id,l in enumerate(leaves):
                 if check_if_arg(token_id, sent_id, Arg1_token_id):
-                    trees += prefix + color.RED + word + color.END + '\n'
+                    l.name = 'Arg1'
                 elif check_if_arg(token_id, sent_id, Arg2_token_id):
-                    trees += prefix + color.BLUE + word + color.END + '\n'
+                    l.name = 'Arg2'
                 elif check_if_arg(token_id, sent_id, Conn_token_id):
-                        trees += prefix + color.GREEN + word + color.END + '\n'
+                    l.name = 'Conn'
                 else:
-                    trees += prefix + word + '\n'
-        return trees 
+                    l.name = 'none'
+            if v: syntax_tree.print_tree(); print('\n\n')
+            ret.append(syntax_tree)
+
+        return ret, verbose
 
 
     def print_highlighted_parsetree(self, i, v=True):
@@ -292,11 +297,14 @@ class PDTB:
         Arg1_token_id = [(o[3],o[4]) for o in r['Arg1']['TokenList']]
         Arg2_token_id = [(o[3],o[4]) for o in r['Arg2']['TokenList']]
         Conn_token_id = [(o[3],o[4]) for o in r['Connective']['TokenList']] if Type in ['Explicit', 'AltLex', 'AltLexC'] else []
-        verbose = "Relation: " + str(i) + ",  Green for Connective(if any), Red for Arg1 and Blue for Arg2. \n" + \
+        
+        if v:
+            verbose = "Relation: " + str(i) + ",  Green for Connective(if any), Red for Arg1 and Blue for Arg2. \n" + \
                 'DocID: ' + docid + ',\t' + 'Type: ' + Type + ',\t' + 'Sense: ' + sense[0] + ',\n' + \
-                'Arg1_sent_id: ' + ' '.join(list(set([str(o[3]) for o in r['Arg1']['TokenList']])))  + '\t' \
-                ',\t' + 'Arg2_sent_id: ' + ' '.join(list(set([str(o[3]) for o in r['Arg2']['TokenList']]))) + '\n' if v else ''
-        if v: print(verbose)
+                'Arg1_sent_id: ' + ' '.join(sorted(list(set([str(o[3]) for o in r['Arg1']['TokenList']]))))  + '\t' \
+                ',\t' + 'Arg2_sent_id: ' + ' '.join(sorted(list(set([str(o[3]) for o in r['Arg2']['TokenList']])))) + '\n' 
+            print(verbose)
+        
         for sent_id in relation_sent_id:
             try:
                 syntax_tree = self.get_syntax_tree(docid, sent_id)
@@ -313,8 +321,34 @@ class PDTB:
                     l.name = color.GREEN + l.name + color.END
             syntax_tree.print_tree()
             print('\n\n')
-            
 
+    def get_simplified_parse_tree(self, i, level, p=True, v=True):
+        """
+        i: the relation number
+        level; 1: simplify 2: more simplify 3: most simplify
+        p: print simplified tree instead of returning it
+        v: verbose for self.get_highlighted_parsetree
+        """
+        syntax_trees, verbose = self.get_highlighted_parsetree(i, False)
+        if v: print('\n\n' + verbose)
+        ret = []
+        for s in syntax_trees:
+            root_name = simplify_tree(s.tree)
+            if level == 1:
+                if p: s.print_tree()
+                ret.append(s)
+                continue
+            s.tree = more_simplify_tree(s.tree)
+            if level == 2:
+                if p: s.print_tree()
+                ret.append(s)
+                continue
+            s.tree = most_simplify_tree(s.tree)
+            if level == 3:
+                if p: s.print_tree()
+                ret.append(s)
+                continue
+        return ret
 
     def get_num_of_seg_of_arg(self, i, x):
         arg = self.get_arg_token_list_in_doc(i, x)
@@ -577,6 +611,55 @@ def same_sentence(sent, arg):
     while sent[0][2] in punct:
         sent.pop(0)
     return arg == [(o[0],o[1]) for o in sent]
+
+def simplify_tree(tree):
+    temp = []
+    if tree.name in ['Arg1', 'Arg2', 'none', 'Conn']:
+        return tree.name
+    for c in tree.children:
+        child_label = simplify_tree(c)
+        temp.append(child_label)
+    if len(set(temp)) == 1:
+        tree.name = temp[0]
+        tree.children = []
+    return tree.name
+
+def more_simplify_tree(tree):
+    temp = []
+    
+    ## simplify among siblings
+    prev_c = None
+    for c in tree.children:
+        c = more_simplify_tree(c)
+        if c.name != prev_c:
+            temp.append(c)
+            prev_c = c.name
+    tree.children = temp
+    return tree
+
+def most_simplify_tree(tree):
+    for i, c in enumerate(tree.children):
+        tree.children[i] = most_simplify_tree(c)
+    if len(tree.children) == 2:
+        # for left branch
+        if len(tree.children[1].children) >= 1:
+            if tree.children[1].children[0].name == tree.children[0].name:
+                tree = tree.children[1]
+        # for right branch
+        if len(tree.children[0].children) >= 1:
+            if tree.children[0].children[1].name == tree.children[1].name:
+                tree = tree.children[0]
+    return tree
+
+
+def get_tree_rules(tree, rules):
+    for c in tree.children:
+        rules = get_tree_rules(c, rules)
+    children = list(map(lambda x:x.name, tree.children))
+    if children != []:
+        rules.append( (tree.name, children ) )
+    return rules
+
 
 if __name__ == "__main__":
     pdtb2 = '/home/pengfei/data/pdtb_v2/all/conll/'
