@@ -287,7 +287,7 @@ class PDTB:
 
         return ret, verbose
 
-    def get_highlighted_parsetree_with_word(self, i, v=False):
+    def get_arg1_arg2_parsetree(self, i, v=False):
         """
         args:
                 i(int): position in self.parse_data
@@ -326,13 +326,64 @@ class PDTB:
             leaves = syntax_tree.tree.get_leaves()
             for token_id,l in enumerate(leaves):
                 if check_if_arg(token_id, sent_id, Arg1_token_id):
-                    l.name = 'Arg1 ' + l.name
+                    l.name = 'Arg1' 
                 elif check_if_arg(token_id, sent_id, Arg2_token_id):
-                    l.name = 'Arg2 ' + l.name 
+                    l.name = 'Arg2'
                 elif check_if_arg(token_id, sent_id, Conn_token_id):
-                    l.name = 'Conn ' + l.name
+                    l.name = 'Conn'
                 else:
-                    l.name = 'none ' + l.name
+                    l.name = 'none'
+            if v: syntax_tree.print_tree(); print('\n\n')
+            ret.append(syntax_tree)
+
+        return ret, verbose
+
+    def get_arg1_arg2_parsetree_with_label(self, i, v=False):
+        """
+        args:
+                i(int): position in self.parse_data
+                v(boolean): verbose
+        returns:
+                trees(str):
+                    highlighted sentence for each relation i
+                    arg1 is highlighted using red color
+                    connective(if any) is highlighted green
+                    arg2 is highlighted blue 
+        """
+
+        r = self.parse_data[i]
+        relation_sent_id = list(set([o[3] for o in r['Arg1']['TokenList']] + [o[3] for o in r['Arg2']['TokenList']]))
+        sense = r['Sense']
+        docid = r['DocID']
+        Type = r['Type']
+        Arg1_token_id = [(o[3],o[4]) for o in r['Arg1']['TokenList']]
+        Arg2_token_id = [(o[3],o[4]) for o in r['Arg2']['TokenList']]
+        Conn_token_id = [(o[3],o[4]) for o in r['Connective']['TokenList']] if Type in ['Explicit', 'AltLex', 'AltLexC'] else []
+
+        verbose = "Relation: " + str(i) + ",  Green for Connective(if any), Red for Arg1 and Blue for Arg2. \n" + \
+                'DocID: ' + docid + ',\t' + 'Type: ' + Type + ',\t' + 'Sense: ' + sense[0] + ',\n' + \
+                'Arg1_sent_id: ' + ' '.join(sorted(list(set([str(o[3]) for o in r['Arg1']['TokenList']]))))  + '\t' \
+                ',\t' + 'Arg2_sent_id: ' + ' '.join(sorted(list(set([str(o[3]) for o in r['Arg2']['TokenList']])))) + '\n' 
+        if v:
+            print(verbose)
+        
+        ret = []
+        for sent_id in relation_sent_id:
+            try:
+                syntax_tree = self.get_syntax_tree(docid, sent_id)
+            except Exception as e:
+                print(e)
+                continue
+            leaves = syntax_tree.tree.get_leaves()
+            for token_id,l in enumerate(leaves):
+                if check_if_arg(token_id, sent_id, Arg1_token_id):
+                    l.label = 'Arg1' 
+                elif check_if_arg(token_id, sent_id, Arg2_token_id):
+                    l.label = 'Arg2'
+                elif check_if_arg(token_id, sent_id, Conn_token_id):
+                    l.label = 'Conn'
+                else:
+                    l.label = 'none'
             if v: syntax_tree.print_tree(); print('\n\n')
             ret.append(syntax_tree)
 
@@ -382,7 +433,7 @@ class PDTB:
         p: print simplified tree instead of returning it
         v: verbose for self.get_highlighted_parsetree
         """
-        syntax_trees, verbose = self.get_highlighted_parsetree_with_word(i, False)
+        syntax_trees, verbose = self.get_arg1_arg2_parsetree(i, False)
         if v: print('\n\n' + verbose)
         ret = []
         for s in syntax_trees:
