@@ -130,7 +130,7 @@ def main(pdtb3, parse_dict, rawtext_foldername):
         relation['Arg2']['TokenList'] = arg_tokenlist
 
         relations.append(relation)
-    return set([o[4:6] for o in relations]), unattended
+    return relations, unattended
 
 
 
