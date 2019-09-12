@@ -119,7 +119,7 @@ def main(pdtb3, parse_dict, rawtext_foldername):
         arg_rawtext = ' '.join([rawtext[o[0]:o[1]] for o in char_span_list])
         # TODO: get rid of all the \n if it appear in the arg?
         relation['Arg1']['RawText'] = arg_rawtext
-        arg_tokenlist = get_token_list(char_span_list, doc_word_dict)
+        arg_tokenlist = get_token_list(char_span_list, doc_word_dict,)
         relation['Arg1']['TokenList'] = arg_tokenlist
 
         # Arg2

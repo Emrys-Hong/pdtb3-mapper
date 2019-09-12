@@ -7,6 +7,7 @@ import numpy as np
 import re
 from collections import OrderedDict
 
+# because pipe2csv_partial did not consider 00 01 24 conn fix, so here did not consider either
 def get_list(parse_dict, doc):
     doc = parse_dict[doc]['sentences']
     char_start_list = []
@@ -44,7 +45,7 @@ def get_doc_word_dict(parse_dict, DocID):
             doc_token_index += 1
     return ret
 
-def get_token_list(char_span_list, doc_word_dict):
+def get_token_list(char_span_list, doc_word_dict, conn):
     tokenlist = []
     doc_word_dict = OrderedDict(sorted(doc_word_dict.items()), keys=lambda x:x[0][0])
     for span in char_span_list:
@@ -55,7 +56,11 @@ def get_token_list(char_span_list, doc_word_dict):
                 break
             if key[0] >= span[0]:
                 tokenlist.append(value)
-    if len(tokenlist) <= 0:
+    if len(tokenlist) <= 0 and (not conn):
+        for key, value in doc_word_dict.items():
+            if key[0] == char_span_list[0][0]:
+                tokenlist.append(value)
+    if len(tokenlist) <= 0 and (not conn):
         import pdb; pdb.set_trace()
     return tokenlist
 
@@ -70,7 +75,7 @@ def main(pdtb3, parse_dict, rawtext_foldername):
     unattended = []
     for i in range(len(pdtb3)):
         if i%1000 == 0:print(i)
-        if pdtb3.loc[i,'DocID'] not in parse_dict.keys(): unattended.append(pdtb3.loc[i,'DocID']);continue
+        # if pdtb3.loc[i,'DocID'] not in parse_dict.keys(): unattended.append(pdtb3.loc[i,'DocID']);continue
         relation = {}
 
         relation['DocID'] = pdtb3.loc[i, 'DocID']
@@ -98,7 +103,7 @@ def main(pdtb3, parse_dict, rawtext_foldername):
             relation['Connective']['CharacterSpanList'] = get_span_list(pdtb3.loc[i, 'Conn_SpanList'])
             # TODO: this may be a problem to put just one connective
             relation['Connective']['RawText'] = pdtb3.loc[i, 'Conn1']
-            relation['Connective']['TokenList'] = get_token_list(relation['Connective']['CharacterSpanList'], doc_word_dict)
+            relation['Connective']['TokenList'] = get_token_list(relation['Connective']['CharacterSpanList'], doc_word_dict, True) # pdtb3.loc[i,'DocID'])
             # TODO: dirty fix 
             if relation['Connective']['TokenList'] == []:
                 continue 
@@ -118,7 +123,7 @@ def main(pdtb3, parse_dict, rawtext_foldername):
         arg_rawtext = ' '.join([rawtext[o[0]:o[1]] for o in char_span_list])
         # TODO: get rid of all the \n if it appear in the arg?
         relation['Arg1']['RawText'] = arg_rawtext
-        arg_tokenlist = get_token_list(char_span_list, doc_word_dict)
+        arg_tokenlist = get_token_list(char_span_list, doc_word_dict, False) # pdtb3.loc[i, 'DocID'])
         relation['Arg1']['TokenList'] = arg_tokenlist
 
         # Arg2
@@ -127,7 +132,7 @@ def main(pdtb3, parse_dict, rawtext_foldername):
         relation['Arg2']['CharacterSpanList'] = char_span_list
         arg_rawtext = ' '.join([rawtext[o[0]:o[1]] for o in char_span_list])
         relation['Arg2']['RawText'] = arg_rawtext
-        arg_tokenlist = get_token_list(char_span_list, doc_word_dict)
+        arg_tokenlist = get_token_list(char_span_list, doc_word_dict, False) #pdtb3.loc[i, 'DocID'])
         relation['Arg2']['TokenList'] = arg_tokenlist
 
         relations.append(relation)
