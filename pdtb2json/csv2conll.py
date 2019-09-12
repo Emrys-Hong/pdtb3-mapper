@@ -55,6 +55,8 @@ def get_token_list(char_span_list, doc_word_dict):
                 break
             if key[0] >= span[0]:
                 tokenlist.append(value)
+    if len(tokenlist) == 0:
+        import pdb; pdb.set_trace()
 
     return tokenlist
 
@@ -69,7 +71,8 @@ def main(pdtb3, parse_dict, rawtext_foldername):
     unattended = []
     for i in range(len(pdtb3)):
         if i%1000 == 0:print(i)
-        if pdtb3.loc[i,'DocID'] not in parse_dict.keys(): unattended.append(pdtb3.loc[i,'DocID']);continue
+        if pdtb3.loc[i,'DocID'] not in parse_dict.keys(): 
+            unattended.append(pdtb3.loc[i,'DocID']);continue
         relation = {}
 
         relation['DocID'] = pdtb3.loc[i, 'DocID']
@@ -89,7 +92,7 @@ def main(pdtb3, parse_dict, rawtext_foldername):
 
         
         doc_word_dict = get_doc_word_dict(parse_dict, pdtb3.loc[i, 'DocID'])
-        rawtext = codecs.open(rawtext_foldername/pdtb3.loc[i,'DocID'],).read()
+        rawtext = codecs.open(rawtext_foldername/pdtb3.loc[i,'DocID'], encoding='latin-1').read()
 
         # connective
         relation['Connective'] = {}
@@ -144,15 +147,15 @@ def relations_to_file(relations):
 if __name__=="__main__":
     pdtb3 = pd.read_csv('pdtb3.csv')
     print("loading parse dict")
-    conll_train = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-train/pdtb-parses.json'
+    conll_train = '/home/pengfei/data/pdtb2-conll-official-dataset/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-train/pdtb-parses.json'
     parse_dict_train = json.loads(codecs.open(conll_train, encoding='utf-8', errors='ignore').read())
-    conll_dev = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-dev/pdtb-parses.json'
+    conll_dev = '/home/pengfei/data/pdtb2-conll-official-dataset/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-dev/pdtb-parses.json'
     parse_dict_dev = json.loads(codecs.open(conll_dev, encoding='utf-8', errors='ignore').read())
-    conll_test = '/home/pengfei/data/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-test/pdtb-parses.json'
+    conll_test = '/home/pengfei/data/pdtb2-conll-official-dataset/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-test/pdtb-parses.json'
     parse_dict_test = json.loads(codecs.open(conll_test, encoding='utf-8', errors='ignore').read())
     print("parse_dict loaded")
     parse_dict = merge3dicts(parse_dict_train, parse_dict_dev, parse_dict_test)
-    rawtext_foldername = Path('/home/pengfei/data/PDTB-3.0/all/raw')
+    rawtext_foldername = Path('/home/pengfei/data/pdtb3-dataset/all/raw')
     relations, unattended = main(pdtb3, parse_dict, rawtext_foldername)
     relations_to_file(relations)
     print("files not contained in conll dataset:")

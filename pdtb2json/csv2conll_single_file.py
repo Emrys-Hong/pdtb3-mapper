@@ -55,7 +55,8 @@ def get_token_list(char_span_list, doc_word_dict):
                 break
             if key[0] >= span[0]:
                 tokenlist.append(value)
-
+    if len(tokenlist) <= 0:
+        import pdb; pdb.set_trace()
     return tokenlist
 
 def merge3dicts(x, y, z):
@@ -143,9 +144,9 @@ def relations_to_file(relations):
     f.close()
 
 if __name__=="__main__":
-    pdtb3 = pd.read_csv('pdtb3.csv')
+    pdtb3 = pd.read_csv('pdtb3_ordered.csv')
     print("loading parse dict")
-    path = 'pdtb-parse.json'
+    path = '/home/pengfei/data/pdtb3-dataset/all/conll/all/pdtb-parses.json'
     parse_dict = json.loads(codecs.open(path, encoding='utf-8', errors='ignore').read())
     print("parse_dict loaded")
     rawtext_foldername = Path('/home/pengfei/data/pdtb3-dataset/all/raw')
