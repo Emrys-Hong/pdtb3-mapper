@@ -7,6 +7,7 @@ import numpy as np
 import re
 from collections import OrderedDict
 
+# because pipe2csv_partial did not consider 00 01 24 conn fix, so here did not consider either
 def get_list(parse_dict, doc):
     doc = parse_dict[doc]['sentences']
     char_start_list = []
@@ -44,7 +45,7 @@ def get_doc_word_dict(parse_dict, DocID):
             doc_token_index += 1
     return ret
 
-def get_token_list(char_span_list, doc_word_dict):
+def get_token_list(char_span_list, doc_word_dict, conn):
     tokenlist = []
     doc_word_dict = OrderedDict(sorted(doc_word_dict.items()), keys=lambda x:x[0][0])
     for span in char_span_list:
@@ -55,9 +56,12 @@ def get_token_list(char_span_list, doc_word_dict):
                 break
             if key[0] >= span[0]:
                 tokenlist.append(value)
-    if len(tokenlist) == 0:
+    if len(tokenlist) <= 0 and (not conn):
+        for key, value in doc_word_dict.items():
+            if key[0] == char_span_list[0][0]:
+                tokenlist.append(value)
+    if len(tokenlist) <= 0 and (not conn):
         import pdb; pdb.set_trace()
-
     return tokenlist
 
 def merge3dicts(x, y, z):
@@ -71,8 +75,7 @@ def main(pdtb3, parse_dict, rawtext_foldername):
     unattended = []
     for i in range(len(pdtb3)):
         if i%1000 == 0:print(i)
-        if pdtb3.loc[i,'DocID'] not in parse_dict.keys(): 
-            unattended.append(pdtb3.loc[i,'DocID']);continue
+        # if pdtb3.loc[i,'DocID'] not in parse_dict.keys(): unattended.append(pdtb3.loc[i,'DocID']);continue
         relation = {}
 
         relation['DocID'] = pdtb3.loc[i, 'DocID']
@@ -92,7 +95,7 @@ def main(pdtb3, parse_dict, rawtext_foldername):
 
         
         doc_word_dict = get_doc_word_dict(parse_dict, pdtb3.loc[i, 'DocID'])
-        rawtext = codecs.open(rawtext_foldername/pdtb3.loc[i,'DocID'], encoding='latin-1').read()
+        rawtext = codecs.open(rawtext_foldername/pdtb3.loc[i,'DocID'],).read()
 
         # connective
         relation['Connective'] = {}
@@ -100,9 +103,10 @@ def main(pdtb3, parse_dict, rawtext_foldername):
             relation['Connective']['CharacterSpanList'] = get_span_list(pdtb3.loc[i, 'Conn_SpanList'])
             # TODO: this may be a problem to put just one connective
             relation['Connective']['RawText'] = pdtb3.loc[i, 'Conn1']
-            relation['Connective']['TokenList'] = get_token_list(relation['Connective']['CharacterSpanList'], doc_word_dict)
-            # DONE: dirty fix removed
-            assert(relation['Connective']['TokenList'] != [])
+            relation['Connective']['TokenList'] = get_token_list(relation['Connective']['CharacterSpanList'], doc_word_dict, True) # pdtb3.loc[i,'DocID'])
+            # TODO: dirty fix 
+            if relation['Connective']['TokenList'] == []:
+                continue 
             if relation['Type'] in ['AltLex', 'AltLexC']:
                 relation['Connective']['RawText'] = ' '.join([rawtext[o[0]:o[1]] for o in relation['Connective']['CharacterSpanList']]) 
         elif relation['Type'] == 'Implicit':
@@ -119,7 +123,7 @@ def main(pdtb3, parse_dict, rawtext_foldername):
         arg_rawtext = ' '.join([rawtext[o[0]:o[1]] for o in char_span_list])
         # TODO: get rid of all the \n if it appear in the arg?
         relation['Arg1']['RawText'] = arg_rawtext
-        arg_tokenlist = get_token_list(char_span_list, doc_word_dict,)
+        arg_tokenlist = get_token_list(char_span_list, doc_word_dict, False) # pdtb3.loc[i, 'DocID'])
         relation['Arg1']['TokenList'] = arg_tokenlist
 
         # Arg2
@@ -128,7 +132,7 @@ def main(pdtb3, parse_dict, rawtext_foldername):
         relation['Arg2']['CharacterSpanList'] = char_span_list
         arg_rawtext = ' '.join([rawtext[o[0]:o[1]] for o in char_span_list])
         relation['Arg2']['RawText'] = arg_rawtext
-        arg_tokenlist = get_token_list(char_span_list, doc_word_dict)
+        arg_tokenlist = get_token_list(char_span_list, doc_word_dict, False) #pdtb3.loc[i, 'DocID'])
         relation['Arg2']['TokenList'] = arg_tokenlist
 
         relations.append(relation)
@@ -138,23 +142,18 @@ def main(pdtb3, parse_dict, rawtext_foldername):
 
 
 def relations_to_file(relations):
-    f = open('pdtb3.json', 'a')
+    f = open('pdtb3-relations.json', 'a')
     for relation in relations:
         f.write(json.dumps(relation))
         f.write('\n')
     f.close()
 
 if __name__=="__main__":
-    pdtb3 = pd.read_csv('pdtb3.csv')
+    pdtb3 = pd.read_csv('pdtb3_ordered.csv')
     print("loading parse dict")
-    conll_train = '/home/pengfei/data/pdtb2-conll-official-dataset/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-train/pdtb-parses.json'
-    parse_dict_train = json.loads(codecs.open(conll_train, encoding='utf-8', errors='ignore').read())
-    conll_dev = '/home/pengfei/data/pdtb2-conll-official-dataset/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-dev/pdtb-parses.json'
-    parse_dict_dev = json.loads(codecs.open(conll_dev, encoding='utf-8', errors='ignore').read())
-    conll_test = '/home/pengfei/data/pdtb2-conll-official-dataset/2015-2016_conll_shared_task/data/conll16st-en-03-29-16-test/pdtb-parses.json'
-    parse_dict_test = json.loads(codecs.open(conll_test, encoding='utf-8', errors='ignore').read())
+    path = '/home/pengfei/data/pdtb3-dataset/all/conll/all/pdtb-parses.json'
+    parse_dict = json.loads(codecs.open(path, encoding='utf-8', errors='ignore').read())
     print("parse_dict loaded")
-    parse_dict = merge3dicts(parse_dict_train, parse_dict_dev, parse_dict_test)
     rawtext_foldername = Path('/home/pengfei/data/pdtb3-dataset/all/raw')
     relations, unattended = main(pdtb3, parse_dict, rawtext_foldername)
     relations_to_file(relations)
